@@ -63,9 +63,33 @@ describe("deterministic validator", () => {
     expect(codes(card, { ...verdict, status: "needs_human_review" })).toContain("claim_not_supported");
   });
 
-  it("blocks publication when the source carried injected instructions", () => {
+  it("blocks publication when the skeptic flags injected instructions", () => {
     const flagged: Verdict = { ...verdict, failureModes: ["prompt_injection_in_source"] };
     expect(codes(card, flagged)).toContain("unhandled_high_risk_flag");
+  });
+
+  /**
+   * The one that matters. The verdict here is spotless: supported, labelled fact, no failure
+   * modes, as if the injection had talked the Skeptic out of flagging itself. The card is
+   * still blocked, because this check is computed from the source text in code. Without this,
+   * the injection defense would be a second opinion from the same kind of component that was
+   * compromised, and the README's claim about it would be false.
+   */
+  it("blocks the source in code even when the skeptic flags nothing at all", () => {
+    const injected = SOURCES.find((s) => s.sentinel === "injection")!;
+    const fromInjected: Claim = {
+      ...claim,
+      sourceId: injected.sourceId,
+      sourceUrl: injected.url,
+      evidence: "The team plans to validate the projection over a full quarter",
+    };
+    const spotless: Verdict = { ...verdict, status: "supported", correctedLabel: "fact", failureModes: [] };
+    const clean: DecisionCard = { ...card, signal: "The team intends to validate the projection." };
+    expect(codes(clean, spotless, fromInjected)).toContain("source_carries_injected_instructions");
+  });
+
+  it("does not flag a clean source", () => {
+    expect(codes(card)).not.toContain("source_carries_injected_instructions");
   });
 
   it("blocks vendor marketing dressed as independent evidence", () => {
@@ -81,8 +105,22 @@ describe("deterministic validator", () => {
     expect(codes({ ...card, successMetrics: ["team feels more confident"] })).toContain("no_measurable_metric");
   });
 
-  it("rejects numbers that do not appear in the evidence", () => {
-    expect(codes({ ...card, decision: "Roll out to all 62 services this quarter." })).toContain("unsupported_number");
+  it("rejects a figure in the signal that does not appear in the evidence", () => {
+    expect(codes({ ...card, signal: "Change failure rate fell across all 62 services." })).toContain("unsupported_number");
+  });
+
+  it("rejects an invented figure in the evidence status", () => {
+    expect(codes({ ...card, evidenceStatus: "Based on 9 controlled trials." })).toContain("unsupported_number");
+  });
+
+  /**
+   * The decision field is exempt on purpose. The Operator is instructed to prefer a bounded
+   * pilot, and a bound has to name a figure that is not in the evidence. Rejecting those would
+   * mean only vague decisions could ever publish.
+   */
+  it("allows a pilot bound in the decision that is absent from the evidence", () => {
+    expect(codes({ ...card, decision: "Run a 30-day pilot on 2 services before expanding." }))
+      .not.toContain("unsupported_number");
   });
 
   it("rejects an irreversible action, it can never stand as a published recommendation", () => {
@@ -114,14 +152,39 @@ describe("citation drift: hedged evidence cannot be upgraded to an achieved resu
   };
   const hedgedVerdict: Verdict = { ...verdict, claimId: "d1", correctedLabel: "inference", confidence: 0.5 };
 
-  it("rejects 'reduced' where the evidence says 'projected to cut'", () => {
-    const upgraded: DecisionCard = {
+  // Every one of these verbs upgrades a projection. Testing only "reduced" would prove the regex, not the property.
+  it.each(["reduced", "cut", "fell", "dropped", "halved", "slashed", "lowered", "cuts", "reduces"])(
+    "rejects '%s' where the evidence says 'projected to cut'",
+    (verb) => {
+      const upgraded: DecisionCard = {
+        ...card,
+        claimId: "d1",
+        signal: `Model routing ${verb} inference spend by 60 percent.`,
+        evidenceStatus: "Projection from one week of traffic sampling, not yet observed in production.",
+      };
+      expect(codes(upgraded, hedgedVerdict, hedged)).toContain("epistemic_upgrade");
+    },
+  );
+
+  it("cannot be smuggled past by adding a hedge word elsewhere in the sentence", () => {
+    const smuggled: DecisionCard = {
       ...card,
       claimId: "d1",
-      signal: "Model routing reduced inference spend by 60 percent.",
+      signal: "Model routing reduced inference spend by 60 percent, and may cut more next quarter.",
       evidenceStatus: "Projection from one week of traffic sampling, not yet observed in production.",
     };
-    expect(codes(upgraded, hedgedVerdict, hedged)).toContain("epistemic_upgrade");
+    expect(codes(smuggled, hedgedVerdict, hedged)).toContain("epistemic_upgrade");
+  });
+
+  it("checks the decision field too, not only the signal", () => {
+    const inDecision: DecisionCard = {
+      ...card,
+      claimId: "d1",
+      signal: "Model routing is projected to cut inference spend.",
+      evidenceStatus: "Projection from one week of traffic sampling, not yet observed in production.",
+      decision: "Given that routing already halved inference spend, expand it to all services.",
+    };
+    expect(codes(inDecision, hedgedVerdict, hedged)).toContain("epistemic_upgrade");
   });
 
   it("accepts the same card when it keeps the source's hedge", () => {

@@ -724,25 +724,26 @@
     {
       "card": {
         "claimId": "src_deploy_agents_c1",
-        "signal": "One 40-engineer platform group reports routing 1,284 of its 1,610 production deployments through an agent over a January–June window.",
-        "evidenceStatus": "Establishes that a single first-party team reports this volume, with both numerator and denominator stated so the ratio is checkable on its face. Does not establish the year, whether the team is representative, or any outcome — no quality, speed or incident figure is attached to the volume. Self-reported operational data with no external verification.",
+        "signal": "A first-party report states that between January and June a 40-engineer platform group routed 1,284 of its 1,610 production deployments through an agent. This is a report of adoption volume, not of benefit.",
+        "evidenceStatus": "The evidence carries the team size, both counts and the reporting window verbatim, so the ratio is checkable on its face. It establishes only that one team did this: the data is self-reported, no year is given, no external verification exists, and no outcome is attached to the routing share.",
         "relevantRoles": [
           "CTO",
           "CIO",
           "CAIO"
         ],
-        "decision": "Do not treat adoption volume as a result. Instrument your own deployment pipeline to capture the same denominator (total production deploys) and agent-routed count for one quarter before deciding whether to expand agent routing anywhere.",
+        "decision": "Treat this as a feasibility existence proof rather than a business case. Authorise a bounded 90-day pilot on one non-tier-0 deployment pipeline, with a pre-pilot baseline captured for at least four weeks before the agent is enabled. Do not fund a fleet-wide rollout on this source.",
         "owner": "VP Platform Engineering",
         "successMetrics": [
-          "Percentage of production deploys routed through an agent, reported monthly against a stated total deploy count",
-          "Baseline total production deploys per month captured for at least 3 consecutive months before any expansion decision",
-          "Change-failure rate per 100 deploys, tracked separately for agent-routed and non-agent-routed deploys"
+          "Percentage of in-scope deployments routed through the agent, reported monthly",
+          "Count of deployments executed inside the pilot pipeline over the 90-day window",
+          "Change-failure rate as a percentage of deployments, baseline four weeks vs pilot period",
+          "Median deploy lead time in minutes, baseline vs pilot"
         ],
-        "authorityBoundary": "An agent may count, tag and report deployment routing telemetry. It may not change which deploys are routed through it, and it may not alter the denominator definition once baselining starts.",
-        "escalateWhen": "Agent-routed share crosses a preset threshold without an approved expansion decision, or the total deploy count moves more than 20 percent month over month, making the ratio uninterpretable.",
-        "privacyOrSecurityConcern": "Deployment telemetry can expose release cadence and infrastructure topology; restrict the dataset to the platform group and its leadership rather than a general dashboard.",
+        "authorityBoundary": "The agent may prepare and stage deployments within the single pilot pipeline and record its own routing statistics. It may not extend to pipelines outside the pilot scope, alter the pilot scope definition, or count its own adoption share as a success signal.",
+        "escalateWhen": "Routing share exceeds the agreed pilot cap, the agent attempts a deployment outside the pilot pipeline, or change-failure rate rises above the pre-pilot baseline in any two-week window.",
+        "privacyOrSecurityConcern": "Routing production deployments through an agent requires credentialed access to production release infrastructure; scope those credentials to the pilot pipeline only, issue them short-lived, and log every agent action to an append-only audit trail.",
         "reversible": true,
-        "confidence": 0.75
+        "confidence": 0.7
       },
       "status": "publishable",
       "issues": []
@@ -750,22 +751,23 @@
     {
       "card": {
         "claimId": "src_deploy_agents_c2",
-        "signal": "The described agent scope is three tasks: prepares the release, runs the pre-deploy checks, and drafts the rollback plan.",
-        "evidenceStatus": "Establishes the stated scope of the agent's role, quoted verbatim from the source. It is a description of what the agent does, not a claim about how well it does any of it — no accuracy, coverage or failure rate is given for the checks or the drafted rollback plans.",
+        "signal": "The source describes the agent's scope as preparing the release, running the pre-deploy checks and drafting the rollback plan. This is a statement of what the agent does, not of how well it does it.",
+        "evidenceStatus": "The three functions appear verbatim in the source, so the scope description is well supported. It establishes nothing about quality, error rate, or the usability of the drafted rollback plans, and no outcome data accompanies it.",
         "relevantRoles": [
           "CTO",
           "CAIO"
         ],
-        "decision": "Adopt this three-task scope as the ceiling for an initial bounded pilot on one non-tier-0 service, keeping release preparation, pre-deploy checks and rollback drafting as agent work and everything else out of scope.",
+        "decision": "If piloting, adopt this same three-function scope as a written, enforced scope-of-duty document rather than an informal convention, and require a named reviewer to rate each drafted rollback plan before the release proceeds.",
         "owner": "Director of Release Engineering",
         "successMetrics": [
-          "Percentage of agent-drafted rollback plans rated executable on review by the on-call engineer, target above 90 percent across at least 30 releases",
-          "Count of pre-deploy check categories the agent covers versus the documented required checklist, reported as a percentage of the checklist",
-          "Median minutes of engineer time spent preparing a release, before and after the pilot"
+          "Percentage of releases where the agent-drafted rollback plan was rated usable without material edits by the reviewer",
+          "Count of pre-deploy check failures surfaced by the agent per month",
+          "Median time in minutes from release candidate to completed rollback draft",
+          "Percentage of releases where the agent operated outside the documented three-function scope (target 0%)"
         ],
-        "authorityBoundary": "The agent may assemble the release artifact, execute read-only pre-deploy checks and produce a draft rollback plan. It may not execute the rollback, mark a failed check as passed, or widen its own task scope.",
-        "escalateWhen": "A pre-deploy check fails, the agent cannot produce a rollback plan for the change, or the release touches schema, secrets or auth paths.",
-        "privacyOrSecurityConcern": "Release preparation requires access to deployment credentials and config; issue the agent scoped, short-lived credentials for the pilot service only, with no cross-environment reach.",
+        "authorityBoundary": "The agent may assemble the release artefact, execute the defined pre-deploy check suite, and draft a rollback plan for human review. It may not execute a rollback, mark a failed check as passed or waived, or modify the check suite itself.",
+        "escalateWhen": "A pre-deploy check fails and the agent cannot produce a specific cause, a rollback draft is rejected by the reviewer more than the agreed threshold rate, or the agent proposes changing its own check definitions.",
+        "privacyOrSecurityConcern": "Release preparation and pre-deploy checks touch production configuration and secret material; give the agent secret-free views or references rather than plaintext credentials, and redact secrets from all drafted artefacts.",
         "reversible": true,
         "confidence": 0.8
       },
@@ -775,23 +777,24 @@
     {
       "card": {
         "claimId": "src_deploy_agents_c3",
-        "signal": "The source states that a human still approves every production release.",
-        "evidenceStatus": "Establishes that the source asserts a human approval gate on all production releases. It is a self-reported process control with no audit log, no exception count and no evidence of enforcement, so it cannot be confirmed by a reader.",
+        "signal": "The source states a human still approves every production release.",
+        "evidenceStatus": "Direct verbatim match with the source. It is a self-reported process control that no external reader can audit, and the source gives no evidence that the control was ever tested or that any release bypassed it.",
         "relevantRoles": [
           "CTO",
           "CIO",
           "CAIO"
         ],
-        "decision": "Make the human approval gate a technically enforced control in your own pilot rather than a policy statement: require a named human approver on every production release and log the approval, so the control is auditable instead of asserted.",
+        "decision": "Mirror this control, but implement it as a technical gate rather than a stated practice: require a recorded, named human approver on every production release, enforced by the pipeline so a release cannot proceed without one.",
         "owner": "VP Engineering",
         "successMetrics": [
-          "Percentage of production releases with a logged, named human approver, target 100 percent",
-          "Count of releases reaching production without a recorded approval, target zero per quarter",
-          "Median minutes between agent-prepared release readiness and human approval decision"
+          "Percentage of production releases with a recorded named human approver (target 100%)",
+          "Count of production releases per month reaching production with no approval record (target 0)",
+          "Median human approval time in minutes, tracked to confirm the gate is not being rubber-stamped",
+          "Count of approval-gate bypass attempts logged per quarter"
         ],
-        "authorityBoundary": "The agent may request approval, present the release and its checks, and wait. It may not approve, self-approve on timeout, or proceed on implied consent.",
-        "escalateWhen": "Any release reaches production without a logged approver, or an approval bypass is proposed for speed reasons.",
-        "privacyOrSecurityConcern": "The approval log is an access-control record; protect it against modification by the agent or the deploying engineer and retain it for the audit period.",
+        "authorityBoundary": "The agent may request approval, assemble the evidence pack the approver needs, and block on the gate. It may not approve a release, hold or use approver credentials, act as approver-of-record for its own work, or auto-approve on approver timeout.",
+        "escalateWhen": "Any release reaches production without a recorded human approver, an approval is recorded under a service account rather than a named person, or a proposal is made to auto-approve any class of release.",
+        "privacyOrSecurityConcern": "Approval records identify individual staff and become audit evidence; retain them in a tamper-evident log with defined retention, and restrict who can amend approval history.",
         "reversible": true,
         "confidence": 0.8
       },
@@ -801,24 +804,25 @@
     {
       "card": {
         "claimId": "src_deploy_agents_c7",
-        "signal": "Engineers intervened manually in 18 percent of agent-prepared deploys.",
-        "evidenceStatus": "Establishes a reported intervention rate against a named denominator — agent-prepared deploys — over the same January–June window. Does not establish severity, cost or whether intervention prevented an incident, and gives no comparison rate for deploys prepared without an agent. Roughly one deploy in five needed a human to step in.",
+        "signal": "The source reports that engineers intervened manually in 18 percent of agent-prepared deploys.",
+        "evidenceStatus": "The figure names its own denominator — agent-prepared deploys — inside the stated January–June window, which makes it interpretable. It remains self-reported, with no severity breakdown, no cost per intervention, and no comparable intervention rate for the team's non-agent deploys.",
         "relevantRoles": [
           "CTO",
           "CAIO"
         ],
-        "decision": "Set an intervention rate ceiling for your pilot before starting and treat it as the go/no-go gate for widening scope; assume something in the high-teens percentage range until your own data says otherwise, rather than budgeting for hands-off operation.",
+        "decision": "Do not adopt 18 percent as a target or a benchmark. Instrument your own manual-intervention rate from day one of any pilot and set an explicit ceiling above which the pilot pauses for review.",
         "owner": "Director of Release Engineering",
         "successMetrics": [
-          "Manual intervention rate as a percentage of agent-prepared deploys, measured weekly against a stated pre-agreed ceiling",
-          "Median engineer minutes per intervention",
-          "Percentage of interventions classified by root cause within 48 hours, target above 95 percent"
+          "Manual intervention rate as a percentage of agent-prepared deploys, reported monthly",
+          "Count of interventions classified by cause per month",
+          "Percentage of interventions that occurred after all automated checks reported pass",
+          "Median engineer time in minutes spent per intervention"
         ],
-        "authorityBoundary": "The agent may flag deploys it assesses as risky and record when a human intervened. It may not suppress, reclassify or exclude interventions from the rate calculation.",
-        "escalateWhen": "The intervention rate exceeds the agreed ceiling in any two consecutive weeks, or a single intervention prevents a production incident.",
-        "privacyOrSecurityConcern": "Intervention records name individual engineers; use them for process improvement only and keep them out of individual performance evaluation inputs.",
+        "authorityBoundary": "The agent may detect a problem, pause the deploy and hand off to an engineer with its reasoning attached. It may not suppress an intervention trigger, silently retry past a condition an engineer flagged, or re-classify its own intervention causes.",
+        "escalateWhen": "The intervention rate exceeds the agreed ceiling in any reporting month, an intervention prevented a production incident that automated checks had passed, or the same intervention cause recurs beyond an agreed count.",
+        "privacyOrSecurityConcern": "none identified",
         "reversible": true,
-        "confidence": 0.65
+        "confidence": 0.7
       },
       "status": "publishable",
       "issues": []
@@ -826,25 +830,26 @@
     {
       "card": {
         "claimId": "src_deploy_agents_c8",
-        "signal": "Manual intervention was most often to correct migration ordering.",
-        "evidenceStatus": "Establishes the authors' characterisation of the leading intervention cause. No breakdown of intervention causes is published, so 'most often' is unquantified — it could be a narrow plurality or a large majority, and the remaining causes are unknown.",
+        "signal": "The source reports that manual intervention was most often to correct migration ordering. The wording is \"most often\" and is not quantified.",
+        "evidenceStatus": "An unquantified characterisation by the authors, with no breakdown of intervention causes behind it. It is a directional hint about where the agent is weakest, not a measured failure distribution, and it cannot be checked against the source.",
         "relevantRoles": [
           "CTO",
           "CDAO",
           "CAIO"
         ],
-        "decision": "Exclude database migrations from agent-prepared release scope in the initial pilot, and require a human-authored migration ordering plan for any release containing schema changes.",
-        "owner": "Head of Data Platform",
+        "decision": "Before any pilot begins, place schema migration ordering outside the agent's authority: the agent may propose an ordering, but a named database owner must sign off the sequence before it is applied to production.",
+        "owner": "Principal Database Engineer",
         "successMetrics": [
-          "Percentage of pilot releases containing migrations that were routed to human ordering review, target 100 percent",
-          "Count of migration-ordering defects reaching production per quarter, target zero",
-          "Percentage of interventions attributable to migration ordering, tracked so your own cause breakdown replaces the source's unquantified claim within one quarter"
+          "Count of migration-ordering defects reaching production per quarter (target 0)",
+          "Percentage of releases containing migrations that required manual reordering",
+          "Median time in minutes for human migration-sequence review",
+          "Percentage of migrations applied in the human-signed-off order (target 100%)"
         ],
-        "authorityBoundary": "The agent may detect migration files in a change set, flag ordering dependencies and propose an ordering for human review. It may not apply, reorder or execute migrations against any production data store.",
-        "escalateWhen": "A change set contains a migration, a migration is irreversible or destructive, or the agent's proposed ordering differs from the one a human authored.",
-        "privacyOrSecurityConcern": "Migration tooling implies write access to production schemas; the agent must hold read-only access to schema metadata and no execution rights on data stores.",
+        "authorityBoundary": "The agent may propose a migration order, detect ordering conflicts and dependency cycles, and generate the review pack. It may not apply, reorder, or retry migrations against production, and may not proceed when its proposed order is unsigned.",
+        "escalateWhen": "A migration is applied in an order other than the signed-off one, a migration requires rollback, or the agent proposes an ordering that conflicts with a dependency it cannot explain.",
+        "privacyOrSecurityConcern": "Migrations alter production data structures and can destroy or expose data; require a verified, restore-tested backup immediately before any migration in scope and forbid agent-initiated application entirely.",
         "reversible": false,
-        "confidence": 0.6
+        "confidence": 0.65
       },
       "status": "rejected",
       "issues": [
@@ -858,21 +863,22 @@
       "card": {
         "claimId": "src_deploy_agents_c9",
         "signal": "The team states it has not run a controlled comparison.",
-        "evidenceStatus": "Establishes, on the authors' own disclosure, that no control group or controlled comparison underpins any figure in this source. This is a limitation stated against the authors' own interest, which strengthens its reliability. It means no result in this source supports a causal attribution to the agent.",
+        "evidenceStatus": "A verbatim methodological disclosure the authors made against their own interest, which raises its reliability. It establishes a hard limit on the entire source: none of its figures can support a causal claim about the agent's effect.",
         "relevantRoles": [
           "CTO",
           "CDAO",
           "CAIO"
         ],
-        "decision": "Do not cite this source as evidence that agent-assisted deployment causes improvement. If the question matters to a funding decision, design your pilot with a comparison arm — hold back a comparable service or time period — so your own result is interpretable.",
+        "decision": "Bar this source from being cited as evidence that agent adoption caused any improvement, in business cases, budget requests or board material. Any internal pilot must define its baseline and, where feasible, a matched control cohort before the agent is switched on.",
         "owner": "VP Engineering",
         "successMetrics": [
-          "Pilot design includes a named comparison arm covering at least 25 percent of eligible deploys",
-          "Percentage of internal decision documents citing this source that carry the no-controlled-comparison caveat, target 100 percent",
-          "Number of weeks of parallel baseline data captured before the pilot starts, target at least 8"
+          "Percentage of internal business-case claims traceable to a documented baseline measurement (target 100%)",
+          "Count of pilot cohorts running with a matched control group",
+          "Number of weeks of baseline data captured before pilot start (minimum four)",
+          "Count of causal claims in exec material lacking a controlled comparison (target 0)"
         ],
-        "authorityBoundary": "The agent may summarise this source and must carry the stated limitation with any figure it reproduces. It may not present any figure from this source as a causal or benchmarked result.",
-        "escalateWhen": "Any figure from this source appears in a business case, board material or vendor comparison without the caveat attached.",
+        "authorityBoundary": "The agent may compile, chart and summarise metrics and state what the data does not establish. It may not describe a correlation as causal, generate ROI or payback figures from uncontrolled data, or drop a stated methodological limitation when summarising.",
+        "escalateWhen": "Any proposal, business case or vendor rebuttal cites this source as proof of causal improvement, or a pilot proceeds with no baseline captured.",
         "privacyOrSecurityConcern": "none identified",
         "reversible": true,
         "confidence": 0.85
@@ -883,24 +889,25 @@
     {
       "card": {
         "claimId": "src_deploy_agents_c10",
-        "signal": "A team reorganisation in March may account for part of the lead time improvement.",
-        "evidenceStatus": "A hedged confound flag from the authors, not a measurement. It establishes that a competing explanation exists and is acknowledged; it does not establish how much of any improvement the reorganisation explains. As stated it is unfalsifiable and carries no supporting data. It constrains the lead-time result rather than adding to it.",
+        "signal": "The source says a team reorganisation in March may account for part of the lead time improvement. The hedge is the substance: it is a flagged confound, not an established cause.",
+        "evidenceStatus": "A hedged causal conjecture with no supporting data, unfalsifiable as stated. It constrains rather than supports the source's lead-time result, and it says nothing about how much of the improvement the reorganisation might explain.",
         "relevantRoles": [
           "CTO",
           "CDAO"
         ],
-        "decision": "Treat the source's lead-time improvement as unattributable and discount it in any business case. Before your own pilot, freeze team structure and process changes for the measurement window, or record them explicitly as confounds.",
-        "owner": "VP Engineering",
+        "decision": "Do not attribute lead-time movement to tooling in any internal analysis. Design the pilot measurement window to hold team composition and org structure fixed, and log every confounding change that occurs anyway alongside the metric series.",
+        "owner": "Director of Engineering Operations",
         "successMetrics": [
-          "Count of org or process changes affecting the pilot team during the measurement window, logged with dates, target zero unlogged",
-          "Percentage of the measurement window with stable team composition, target above 90 percent",
-          "Deployment lead time in median hours, reported alongside a dated change log for the same period"
+          "Count of org, headcount or team-composition changes recorded inside the pilot measurement window",
+          "Percentage of measurement weeks free of team-composition change",
+          "Median deploy lead time in hours, tracked weekly across the window",
+          "Count of published lead-time analyses carrying an explicit confounder list (target 100%)"
         ],
-        "authorityBoundary": "The agent may record dated confounding events and attach them to reported metrics. It may not attribute a metric change to a cause or drop a confound from a report.",
-        "escalateWhen": "A reorganisation, staffing change or tooling migration lands inside the measurement window, or a lead-time figure is presented without its change log.",
-        "privacyOrSecurityConcern": "Org change logs contain staffing information; restrict access to the leaders interpreting the metric.",
+        "authorityBoundary": "The agent may compute and report the lead-time series and list recorded confounders. It may not attribute a change to any cause, rank causes by likelihood, or present a confounded series as a clean before-and-after.",
+        "escalateWhen": "A reorganisation or headcount change lands inside the measurement window, or any report attributes lead-time movement to agent adoption without a controlled comparison.",
+        "privacyOrSecurityConcern": "Lead-time and reorganisation analysis can become individual engineer performance data; aggregate to team level and restrict access to the underlying per-person records.",
         "reversible": true,
-        "confidence": 0.6
+        "confidence": 0.65
       },
       "status": "publishable",
       "issues": []
@@ -909,21 +916,21 @@
       "card": {
         "claimId": "src_deploy_agents_c11",
         "signal": "The authors state they would not describe the result as causal.",
-        "evidenceStatus": "Establishes verbatim that the source disclaims causal interpretation of its own result. Checkable against the closing sentence of the text. The content of the statement is the authors' judgement, but the fact that they made it is directly verifiable. Combined with the absent controlled comparison, this source is a first-party operational account, not evidence of effect.",
+        "evidenceStatus": "A verbatim, attributed report of the authors' own interpretation of their data, checkable against the closing sentence of the source. It establishes how the authors frame their result; it establishes nothing about the agent's actual effect.",
         "relevantRoles": [
           "CTO",
           "CDAO",
           "CAIO"
         ],
-        "decision": "Classify this source as directional context only in your evidence register, and set a standing rule that no vendor selection or budget decision rests on sources that disclaim causality.",
-        "owner": "Chief AI Officer",
+        "decision": "Adopt the authors' own framing when this source is used: file and cite it as a first-party operational account of feasibility, explicitly labelled as non-causal, and require that label to travel with it into any downstream document.",
+        "owner": "Head of Engineering Strategy",
         "successMetrics": [
-          "Percentage of sources in the decision register carrying an explicit causal-strength rating, target 100 percent",
-          "Count of investment decisions citing a self-disclaimed non-causal source as primary evidence, target zero per quarter",
-          "Percentage of briefing documents that reproduce the authors' own causal disclaimer alongside their figures, target 100 percent"
+          "Percentage of practitioner and vendor sources in the decision file carrying an explicit evidence-strength label (target 100%)",
+          "Count of causal claims in board or budget material unsupported by a controlled comparison (target 0)",
+          "Count of downstream documents citing this source without its non-causal label (target 0)"
         ],
-        "authorityBoundary": "The agent may classify sources by evidence strength and carry their disclaimers forward verbatim. It may not upgrade a disclaimed result to a causal finding or strip the disclaimer when summarising.",
-        "escalateWhen": "A summary or downstream artifact restates a figure from this source as an effect of agent adoption, or the source is used as a benchmark for a vendor comparison.",
+        "authorityBoundary": "The agent may summarise the source and reproduce its evidence-strength label verbatim. It may not upgrade hedged wording, drop an author's stated caveat when summarising, or present this account as independent or causal evidence.",
+        "escalateWhen": "Any strategy, procurement or board document restates this source as causal evidence, or a summary of it appears without the authors' non-causal caveat.",
         "privacyOrSecurityConcern": "none identified",
         "reversible": true,
         "confidence": 0.75
@@ -934,59 +941,57 @@
     {
       "card": {
         "claimId": "src_vendor_benchmark_c1",
-        "signal": "Orchestryx announced that its agent orchestration platform is \"enterprise ready\".",
-        "evidenceStatus": "Establishes only that the vendor made this statement. \"Enterprise ready\" is undefined in the announcement — no criteria, no third-party assessment, no reference architecture. Nothing here establishes that the platform meets any specific enterprise requirement.",
+        "signal": "Orchestryx announced that its agent orchestration platform is \"enterprise ready\". This is the vendor's own description of its product.",
+        "evidenceStatus": "The evidence supports only the attribution: the vendor said this. Nothing in the source establishes that the platform is enterprise ready by any definition, and no criteria for the phrase are given. As vendor marketing, it cannot ground an adoption decision.",
         "relevantRoles": [
           "CTO",
           "CIO",
           "CAIO"
         ],
-        "decision": "Ignore the label and define your own enterprise-readiness criteria — SSO, audit logging, tenancy isolation, data residency, incident SLAs, exit path — then require Orchestryx to answer each in writing before any evaluation spend.",
-        "owner": "VP Enterprise Architecture",
+        "decision": "No procurement, pilot or architecture decision may rest on this statement. If there is independent interest in the vendor, require a written definition of \"enterprise ready\" mapped item-by-item to your own enterprise control checklist before any evaluation stage opens.",
+        "owner": "Director of IT Vendor Management",
         "successMetrics": [
-          "Percentage of the internal enterprise-readiness checklist answered in writing by the vendor, target 100 percent before pilot approval",
-          "Count of checklist items independently verified in a sandbox rather than vendor-attested, target at least 80 percent of security-relevant items",
-          "Days from criteria issued to complete vendor response, tracked against a 30-day limit"
+          "Count of your enterprise checklist items the vendor evidences in writing, out of the total",
+          "Percentage of checklist items backed by third-party or customer evidence rather than vendor assertion",
+          "Number of business days from request to vendor's written response",
+          "Count of evaluation stages advanced on vendor assertion alone (target 0)"
         ],
-        "authorityBoundary": "An agent may collect vendor claims and map them to checklist rows. It may not mark a checklist item satisfied on the basis of vendor marketing language alone.",
-        "escalateWhen": "The vendor declines to answer a security or data residency item, answers only with marketing language, or the procurement timeline pressures a decision before the checklist is complete.",
-        "privacyOrSecurityConcern": "An orchestration platform would sit across production systems; unverified readiness claims are a real blast-radius risk, so treat security items as blocking rather than advisory.",
+        "authorityBoundary": "The agent may collect, file and label vendor statements as marketing. It may not treat a vendor phrase as a satisfied requirement, score it in a vendor comparison, or advance a vendor to shortlist on the strength of an announcement.",
+        "escalateWhen": "The vendor asserts a control is met without documentation, or any purchase, pilot or integration proposal cites this announcement as support.",
+        "privacyOrSecurityConcern": "\"Enterprise ready\" is an unverified marketing phrase that can be mistaken internally for a security or compliance assurance; no security evidence appears anywhere in the source, so treat the platform's posture as unassessed.",
         "reversible": true,
-        "confidence": 0.85
+        "confidence": 0.6
       },
       "status": "rejected",
       "issues": [
         {
           "code": "marketing_as_decision_basis",
           "detail": "a vendor's claim about its own product cannot ground a decision"
-        },
-        {
-          "code": "inference_as_fact",
-          "detail": "claim is marketing but evidenceStatus states it unqualified"
         }
       ]
     },
     {
       "card": {
         "claimId": "src_vendor_benchmark_c2",
-        "signal": "Orchestryx claims the platform delivers \"up to 10x faster incident resolution\" for large IT organisations.",
-        "evidenceStatus": "Establishes only what the vendor claims. The figure is unusable as evidence: \"up to\" sets a ceiling rather than an expected value, and there is no baseline, no incident count and no measurement period. Flagged for a number missing its denominator and timeframe.",
+        "signal": "Orchestryx claims the platform delivers \"up to 10x faster incident resolution\" for large IT organisations. The \"up to\" is a ceiling the vendor chose, not a measured typical result.",
+        "evidenceStatus": "The evidence establishes that the vendor made this claim and nothing more. The figure is unusable as performance evidence: it has no comparison baseline, no incident count and no measurement period, which is exactly the missing-denominator failure the Skeptic flagged. It is marketing and cannot support any adoption decision.",
         "relevantRoles": [
           "CTO",
           "CIO"
         ],
-        "decision": "Refuse the 10x figure as an input to any business case. If incident resolution speed is the goal, run a time-boxed pilot on one incident class against your own measured MTTR baseline and let that number set expectations.",
-        "owner": "VP IT Operations",
+        "decision": "Exclude the 10x figure from every business case, ROI model and board slide. If the vendor is otherwise of interest, the only route forward is a time-boxed proof of concept run on your own incident stream against your own measured MTTR baseline.",
+        "owner": "VP IT Service Management",
         "successMetrics": [
-          "Current MTTR in median minutes per incident severity class, baselined over at least 90 days before pilot start",
-          "Percentage change in median MTTR for the piloted incident class over an 8-week pilot",
-          "Count of incidents in the pilot sample, with a stated minimum of 50 before any conclusion is drawn"
+          "Median incident resolution time in minutes, your baseline vs the proof-of-concept period",
+          "Percentage change in MTTR over an eight-week proof of concept",
+          "Count of incidents in the proof-of-concept sample, against an agreed minimum sample size",
+          "Count of internal documents reusing the vendor 10x figure (target 0)"
         ],
-        "authorityBoundary": "The agent may quote this figure only with its vendor attribution and its missing-baseline caveat attached. It may not use it in a projection, ROI model or comparison table.",
-        "escalateWhen": "The figure appears in a budget request or board slide, or a pilot result is extrapolated toward the vendor's ceiling rather than reported as measured.",
-        "privacyOrSecurityConcern": "Incident data used for MTTR benchmarking contains outage detail and system topology; keep the pilot dataset internal and do not share raw incident records with the vendor.",
+        "authorityBoundary": "Within a proof of concept the agent may triage, enrich and draft incident summaries. It may not close incidents, change incident severity, alter timestamps used for MTTR measurement, or supply performance figures for the evaluation it is the subject of.",
+        "escalateWhen": "MTTR fails to improve by the agreed percentage over the proof-of-concept window, the sample falls below the agreed incident count, or any ROI model reuses the 10x figure.",
+        "privacyOrSecurityConcern": "Incident records routinely contain customer identifiers, system topology and credentials pasted into tickets; a proof of concept must run on redacted data or under a signed contract with defined processing terms before any incident data leaves your estate.",
         "reversible": true,
-        "confidence": 0.8
+        "confidence": 0.5
       },
       "status": "rejected",
       "issues": [
@@ -1004,24 +1009,25 @@
       "card": {
         "claimId": "src_vendor_benchmark_c3",
         "signal": "The 10x figure comes from benchmarking Orchestryx ran on its own infrastructure.",
-        "evidenceStatus": "Establishes the provenance of the figure: self-run, self-hosted benchmarking. The disclosure is reportable as fact, but the benchmark itself remains vendor marketing and must not be reused downstream as independent evidence of performance. Nothing establishes that the benchmark environment resembles any customer environment.",
+        "evidenceStatus": "The evidence establishes provenance directly and the source discloses the self-benchmarking rather than hiding it, which makes the provenance reportable as fact. It does not establish performance: a vendor-run benchmark on vendor infrastructure cannot serve as independent evidence and must not be reused downstream as if it were.",
         "relevantRoles": [
           "CTO",
           "CIO",
           "CDAO"
         ],
-        "decision": "Make a customer-environment proof of concept a precondition of any commercial commitment: same workload mix, your infrastructure, your incident classes, results owned by you and not subject to vendor approval before publication internally.",
-        "owner": "VP IT Operations",
+        "decision": "Tag the benchmark as non-independent in the vendor file and require a reproducible benchmark harness you can run on your own workloads before evaluation advances. Do not commission internal analysis that takes the vendor's numbers as its input.",
+        "owner": "Director of IT Vendor Management",
         "successMetrics": [
-          "Percentage of vendor performance claims reproduced in your own environment before contract signature, target 100 percent of claims used in the business case",
-          "Number of incident classes covered by the proof of concept, target at least 3",
-          "Percentage variance between vendor-benchmarked and in-house measured resolution time, reported explicitly"
+          "Count of benchmark runs executed on your own infrastructure with your own workload mix",
+          "Percentage of benchmark parameters (workload mix, baseline, sample size, measurement period) disclosed by the vendor in writing",
+          "Number of days from request to receipt of a reproducible benchmark harness",
+          "Count of internal artefacts citing the vendor benchmark as independent evidence (target 0)"
         ],
-        "authorityBoundary": "The agent may record and label the benchmark's provenance. It may not cite the benchmark as independent evidence, aggregate it with third-party results, or carry it into a vendor scoring model as a verified performance figure.",
-        "escalateWhen": "The vendor declines a customer-environment proof of concept, requires approval rights over the results, or the self-run benchmark is proposed as a substitute for it.",
-        "privacyOrSecurityConcern": "A proof of concept on your infrastructure grants the vendor visibility into production incident data and system topology; scope it to a segregated environment with synthetic or redacted incident content and a written data handling term.",
+        "authorityBoundary": "The agent may record provenance, tag sources as vendor-run, and prepare benchmark comparison tables. It may not present a vendor-run benchmark as independent evidence, merge vendor figures into an internal results set, or drop the provenance tag when summarising.",
+        "escalateWhen": "The vendor declines to supply a reproducible harness, the harness cannot be run without vendor staff present, or the vendor benchmark appears in board or budget material.",
+        "privacyOrSecurityConcern": "Running a vendor harness inside your estate can expose production telemetry, topology and workload characteristics to vendor tooling; run it in an isolated environment on synthetic or de-identified workloads with egress controlled.",
         "reversible": true,
-        "confidence": 0.75
+        "confidence": 0.7
       },
       "status": "rejected",
       "issues": [
@@ -1039,21 +1045,22 @@
       "card": {
         "claimId": "src_vendor_benchmark_c4",
         "signal": "Orchestryx did not publish the workload mix, the comparison baseline, the number of incidents or the measurement period.",
-        "evidenceStatus": "Establishes four specific omissions in the announcement. Together they mean the performance claim cannot be evaluated, reproduced or compared against any alternative — a reader cannot tell what was measured, against what, how many times, or over how long. This is a documented gap, not a suspicion.",
+        "evidenceStatus": "The evidence enumerates exactly these four omissions and the source is in a position to observe what the announcement contained. Together the four gaps make the performance claim uncheckable by any reader — this is a finding about disclosure, not about the product.",
         "relevantRoles": [
           "CTO",
           "CIO",
           "CDAO"
         ],
-        "decision": "Send these four items to the vendor as a written disclosure request and treat a non-answer as a scoring penalty in the evaluation, not a neutral outcome. Do not shortlist on the published claim.",
-        "owner": "Director of Vendor Management",
+        "decision": "Make disclosure of all four items a hard gate in the RFP: workload mix, comparison baseline, incident count and measurement period, supplied in writing. No vendor advances to shortlist until all four are provided, and apply the same gate to every competing vendor.",
+        "owner": "Head of Technology Procurement",
         "successMetrics": [
-          "Count of the four missing disclosures supplied in writing by the vendor, target 4 of 4 within 21 days",
-          "Percentage of shortlisted vendors meeting a minimum disclosure standard covering baseline, sample size and measurement period, target 100 percent",
-          "Count of evaluation scores assigned on undisclosed methodology, target zero"
+          "Count of the four required items disclosed in writing, gated at four of four",
+          "Number of business days from RFP issue to complete disclosure",
+          "Percentage of shortlisted vendors meeting the four-item disclosure gate (target 100%)",
+          "Count of gate waivers granted (target 0)"
         ],
-        "authorityBoundary": "The agent may enumerate disclosure gaps and track vendor responses against them. It may not infer, estimate or fill in a missing baseline, sample size or measurement period.",
-        "escalateWhen": "The vendor supplies fewer than all four disclosures, supplies them under terms that prevent internal circulation, or evaluation proceeds to shortlist with gaps outstanding.",
+        "authorityBoundary": "The agent may draft the disclosure questions, track responses and mark items as received or outstanding. It may not waive a gate, score a partial or evasive response as satisfied, or infer a missing value from vendor marketing copy.",
+        "escalateWhen": "The vendor refuses disclosure while the sales process continues, an executive sponsor requests a gate waiver, or a response supplies a figure without its baseline and period.",
         "privacyOrSecurityConcern": "none identified",
         "reversible": true,
         "confidence": 0.8
@@ -1070,23 +1077,24 @@
       "card": {
         "claimId": "src_vendor_benchmark_c5",
         "signal": "No customer named in the announcement agreed to be contacted.",
-        "evidenceStatus": "Establishes that reference checks against the named customers were unavailable at publication. Scoped to customers named in the announcement — it says nothing about whether other customers exist or would speak. It removes the one route a buyer would normally use to test the vendor's claims independently.",
+        "evidenceStatus": "The evidence matches the claim with no added scope and is limited to customers named in that announcement. It does not establish that no contactable reference exists anywhere, but it does mean the announcement supplies zero verifiable customer corroboration.",
         "relevantRoles": [
           "CTO",
           "CIO"
         ],
-        "decision": "Make at least two contactable production references a hard gate before pilot funding, sourced independently of the announcement — through your own network or a peer CIO group if the vendor cannot supply them.",
-        "owner": "Director of Vendor Management",
+        "decision": "Require at least two contactable production references at comparable scale and workload before evaluation advances past initial screening, and record continued unavailability as a material risk in the vendor file rather than a neutral fact.",
+        "owner": "Director of IT Vendor Management",
         "successMetrics": [
-          "Count of completed reference calls with customers running the platform in production, minimum 2 before pilot approval",
-          "Percentage of references sourced independently of the vendor, target at least 50 percent",
-          "Count of reference-reported production incidents attributed to the platform, captured and logged for each call"
+          "Count of contactable production references secured (minimum two)",
+          "Percentage of agreed reference calls completed within 30 days",
+          "Count of references running at comparable deployment scale to your own",
+          "Count of evaluation stages advanced with zero completed reference calls (target 0)"
         ],
-        "authorityBoundary": "The agent may prepare reference-call question sets and record the answers. It may not contact customers, represent the organisation externally, or treat a vendor-supplied testimonial as a completed reference check.",
-        "escalateWhen": "Fewer than two contactable production references materialise, a reference declines to discuss failure modes, or the vendor conditions reference access on a commercial commitment.",
-        "privacyOrSecurityConcern": "Reference conversations may surface another organisation's incident detail; keep notes internal and do not relay identifiable content back to the vendor.",
+        "authorityBoundary": "The agent may prepare reference-call question sets, schedule slots and log the answers a human records. It may not contact references itself, mark a reference requirement as satisfied, or substitute vendor-supplied case studies for a live reference call.",
+        "escalateWhen": "Fewer than two contactable references are produced within the agreed window, references decline to discuss production incidents or failure modes, or the vendor insists on attending the reference call.",
+        "privacyOrSecurityConcern": "Reference calls surface another customer's operational and incident detail; keep notes internal, do not record calls without written consent, and avoid capturing that customer's system specifics in your vendor file.",
         "reversible": true,
-        "confidence": 0.75
+        "confidence": 0.7
       },
       "status": "publishable",
       "issues": []
@@ -1094,35 +1102,32 @@
     {
       "card": {
         "claimId": "src_vendor_benchmark_c7",
-        "signal": "Orchestryx states that the platform is \"SOC 2 aligned\".",
-        "evidenceStatus": "Establishes the vendor's own wording, verbatim. \"SOC 2 aligned\" is self-asserted positioning with no auditor, no report type, no scope and no observation period behind it. Nothing here establishes any audited control.",
+        "signal": "Orchestryx states the platform is \"SOC 2 aligned\". This is the vendor's own wording about itself.",
+        "evidenceStatus": "The evidence supports only that the vendor used this phrase. \"SOC 2 aligned\" is self-asserted positioning with no audited report, no auditor, no scope and no period in evidence. It is marketing and cannot ground a security or data-handling decision.",
         "relevantRoles": [
           "CIO",
           "CTO",
           "CDAO"
         ],
-        "decision": "Request the SOC 2 Type II report with its scope and observation period under NDA before any data touches the platform. If only alignment language is available, cap the pilot to non-production data and no customer or personal information.",
-        "owner": "Chief Information Security Officer",
+        "decision": "Request the SOC 2 Type II report, its scope statement and a current bridge letter, and have Security GRC review them. Block every data-handling integration, trial and connector until that review completes — do not let a pilot proceed under the vendor's phrasing.",
+        "owner": "CISO",
         "successMetrics": [
-          "Receipt of a SOC 2 Type II report with a stated observation period of at least 6 months, yes or no, before data onboarding",
-          "Count of exceptions or qualifications in the report, reviewed and dispositioned within 10 business days",
-          "Percentage of pilot data classified non-production, target 100 percent until an audited report is reviewed"
+          "Number of days from request to receipt of the SOC 2 Type II report",
+          "Count of exceptions and qualifications listed in the report",
+          "Percentage of your control requirements mapped to controls actually in the report's scope",
+          "Count of systems connected to the platform before GRC sign-off (target 0)"
         ],
-        "authorityBoundary": "The agent may request, track and index compliance artifacts. It may not record a compliance control as satisfied, approve data onboarding, or accept alignment language in place of an audit report.",
-        "escalateWhen": "No Type II report exists, the report scope excludes the service being bought, the observation period is stale, or any production or personal data is proposed for the pilot before review.",
-        "privacyOrSecurityConcern": "Unaudited controls on a platform with cross-system orchestration reach is a direct data protection exposure; treat this as a security gate rather than a procurement formality.",
+        "authorityBoundary": "The agent may request, index and summarise compliance documents and flag missing ones. It may not accept \"aligned\" as satisfying a compliance control, grant or request system access, provision credentials, or move data to the platform.",
+        "escalateWhen": "No Type II report is produced, the report's scope excludes the service under evaluation, the report is older than twelve months without a bridge letter, or exceptions remain unremediated.",
+        "privacyOrSecurityConcern": "The platform's compliance posture is unverified; no production, personal or regulated data may be transmitted to it until an audited report covering the relevant service has been reviewed and accepted by Security GRC.",
         "reversible": false,
-        "confidence": 0.85
+        "confidence": 0.75
       },
       "status": "rejected",
       "issues": [
         {
           "code": "marketing_as_decision_basis",
           "detail": "a vendor's claim about its own product cannot ground a decision"
-        },
-        {
-          "code": "inference_as_fact",
-          "detail": "claim is marketing but evidenceStatus states it unqualified"
         },
         {
           "code": "irreversible_without_human_approval",
@@ -1134,27 +1139,33 @@
       "card": {
         "claimId": "src_vendor_benchmark_c8",
         "signal": "\"SOC 2 aligned\" is not the same as SOC 2 certified.",
-        "evidenceStatus": "A definitional distinction that holds regardless of this source's credibility: alignment is self-declared, certification rests on an independent audit producing a report with defined scope and observation period. Establishes that the vendor's wording carries no audited assurance. Does not establish that the vendor's controls are inadequate — only that they are unevidenced.",
+        "evidenceStatus": "The distinction is definitional — self-declared alignment against an audited report — so it holds regardless of the source's credibility, and the evidence states it directly. It tells you how to read the vendor's wording; it tells you nothing about the vendor's actual control environment.",
         "relevantRoles": [
           "CIO",
           "CTO",
           "CDAO"
         ],
-        "decision": "Codify the distinction in procurement policy: compliance claims count only when backed by an audit report, and \"aligned\", \"compatible\" or \"in accordance with\" language is recorded as an unmet control across all vendors, not just this one.",
-        "owner": "Chief Information Security Officer",
+        "decision": "Encode the distinction in procurement policy: self-declared alignment scores zero in vendor security assessment, and only an audited report within scope and in date can satisfy a control requirement. Apply it to the existing vendor pipeline, not just new entrants.",
+        "owner": "Director of Security GRC",
         "successMetrics": [
-          "Percentage of vendor compliance assertions in the register classified as audited or self-declared, target 100 percent",
-          "Count of vendors onboarded on self-declared compliance language alone, target zero per year",
-          "Percentage of procurement staff trained on the alignment-versus-certification distinction within one quarter, target 100 percent"
+          "Percentage of vendor security assessments requiring an in-scope audited report (target 100%)",
+          "Count of vendors onboarded on self-attestation alone (target 0)",
+          "Number of days to re-review reports approaching expiry",
+          "Count of vendor records where compliance statements are classified as attested vs audited (target 100% classified)"
         ],
-        "authorityBoundary": "The agent may classify compliance language as audited or self-declared and flag the difference. It may not grant an exception, waive the audit requirement, or normalise alignment language into a certification field in the vendor register.",
-        "escalateWhen": "A vendor record shows a certification status not backed by a report, or a business unit requests an exception to onboard on alignment language.",
-        "privacyOrSecurityConcern": "Mis-recording self-declared alignment as certification propagates a false assurance through the vendor register and downstream risk reporting; enforce the field distinction at data entry.",
+        "authorityBoundary": "The agent may classify vendor compliance statements as self-attested or independently audited and flag expiry dates. It may not mark a self-attestation as compliant, map an unaudited claim to a control requirement, or clear a vendor for onboarding.",
+        "escalateWhen": "Any vendor is proposed for onboarding on self-attestation, an audit report passes twelve months without a bridge letter, or a business unit requests an exception to the audited-report requirement.",
+        "privacyOrSecurityConcern": "Admitting an unaudited processor into the estate risks regulated or personal data being handled under controls no one has verified; hold the audited-report requirement before any data-processing agreement is signed.",
         "reversible": true,
         "confidence": 0.75
       },
-      "status": "publishable",
-      "issues": []
+      "status": "rejected",
+      "issues": [
+        {
+          "code": "inference_as_fact",
+          "detail": "claim is inference but evidenceStatus states it unqualified"
+        }
+      ]
     }
   ],
   "trace": [
@@ -1250,19 +1261,18 @@
       "at": 11,
       "event": "validator_rejected",
       "detail": {
-        "count": 6,
+        "count": 7,
         "codes": [
           "irreversible_without_human_approval",
           "marketing_as_decision_basis",
-          "inference_as_fact",
           "marketing_as_decision_basis",
           "unhandled_high_risk_flag",
           "unhandled_high_risk_flag",
           "unsupported_number",
           "unhandled_high_risk_flag",
           "marketing_as_decision_basis",
-          "inference_as_fact",
-          "irreversible_without_human_approval"
+          "irreversible_without_human_approval",
+          "inference_as_fact"
         ]
       }
     },
@@ -1270,7 +1280,7 @@
       "at": 12,
       "event": "awaiting_editor_approval",
       "detail": {
-        "publishable": 9
+        "publishable": 8
       }
     }
   ],
@@ -1282,10 +1292,10 @@
     "unsupported_rejection_rate": 0,
     "human_review_rate": 0.444,
     "cards_created": 15,
-    "cards_publishable": 9,
-    "cards_rejected_by_validator": 6,
+    "cards_publishable": 8,
+    "cards_rejected_by_validator": 7,
     "citations_lost_between_stages": 0,
-    "total_retries": 0
+    "total_retries": 1
   },
   "status": "awaiting_editor_approval"
 }
