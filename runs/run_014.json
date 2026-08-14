@@ -745,8 +745,13 @@
         "reversible": true,
         "confidence": 0.7
       },
-      "status": "publishable",
-      "issues": []
+      "status": "rejected",
+      "issues": [
+        {
+          "code": "reversibility_misreported",
+          "detail": "decision recommends \"fleet-wide\" but the card reports itself as reversible"
+        }
+      ]
     },
     {
       "card": {
@@ -1261,8 +1266,9 @@
       "at": 11,
       "event": "validator_rejected",
       "detail": {
-        "count": 7,
+        "count": 8,
         "codes": [
+          "reversibility_misreported",
           "irreversible_without_human_approval",
           "marketing_as_decision_basis",
           "marketing_as_decision_basis",
@@ -1280,7 +1286,7 @@
       "at": 12,
       "event": "awaiting_editor_approval",
       "detail": {
-        "publishable": 8
+        "publishable": 7
       }
     }
   ],
@@ -1292,10 +1298,10 @@
     "unsupported_rejection_rate": 0,
     "human_review_rate": 0.444,
     "cards_created": 15,
-    "cards_publishable": 8,
-    "cards_rejected_by_validator": 7,
+    "cards_publishable": 7,
+    "cards_rejected_by_validator": 8,
     "citations_lost_between_stages": 0,
-    "total_retries": 1
+    "total_retries": 0
   },
   "status": "awaiting_editor_approval"
 }

@@ -77,8 +77,14 @@ The validator rejects any card that has an ambiguous or unmatched `claimId`, quo
 not a verbatim substring of its source, carries no source URL, comes from a source whose text contains
 instructions aimed at an automated reader, rests on a claim the Skeptic did not support, rests on a
 marketing-labelled claim or a figure with no denominator or timeframe, presents inference as fact,
-upgrades hedged evidence into an achieved result, names no owner, names no measurable success metric,
-states a figure absent from the evidence, or recommends an action that is hard to reverse.
+upgrades hedged evidence into an achieved result, is not lexically about the claim it cites, names no
+owner, names no measurable success metric, states a figure absent from the evidence, or recommends a
+hard-to-reverse action (whether or not the card admits it is one).
+
+Nothing load-bearing depends on a model's self-report. `reversible` is a boolean the Operator sets
+about its own output, so the decision text is scanned for irreversible language independently, and a
+card claiming `reversible: true` while recommending a company-wide rollout is rejected. Likewise,
+citing a real `claimId` is not the same as being about it, so card and claim must share content words.
 
 Two rules are deliberately scoped rather than maximal, and the reasoning is in the code:
 

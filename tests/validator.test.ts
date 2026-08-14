@@ -127,6 +127,44 @@ describe("deterministic validator", () => {
     expect(codes({ ...card, reversible: false })).toContain("irreversible_without_human_approval");
   });
 
+  /**
+   * `reversible` is a boolean the Operator sets about its own output. Trusting it would repeat
+   * the mistake the injection check made. The decision text is read in code instead.
+   */
+  it.each([
+    "Roll out to all services this quarter.",
+    "Decommission the existing deployment pipeline.",
+    "Standardise on this vendor company-wide.",
+    "Move to a fully autonomous production release process.",
+  ])("catches irreversible language in '%s' even when the card claims reversible: true", (decision) => {
+    expect(codes({ ...card, decision, reversible: true })).toContain("reversibility_misreported");
+  });
+
+  it("does not fire on a genuinely bounded decision", () => {
+    expect(codes({ ...card, decision: "Run a 30-day pilot on two services, then reassess." }))
+      .not.toContain("reversibility_misreported");
+  });
+
+  /**
+   * Rules 1 and 2 prove a card cites a real claim. They do not prove it is about it.
+   * This is the gap: a valid claimId with a signal on an unrelated subject.
+   */
+  it("rejects a card whose signal is unrelated to the claim it cites", () => {
+    const offTopic = {
+      ...card,
+      signal: "Procurement should renegotiate its storage vendor licensing terms.",
+    };
+    expect(codes(offTopic)).toContain("card_not_about_its_claim");
+  });
+
+  it("accepts a card that restates its claim in different words", () => {
+    const paraphrased = {
+      ...card,
+      signal: "Deployment change failure rate improved after the agent was introduced.",
+    };
+    expect(codes(paraphrased)).not.toContain("card_not_about_its_claim");
+  });
+
   it("rejects inference stated without qualification", () => {
     const inferred: Verdict = { ...verdict, correctedLabel: "inference" };
     expect(codes({ ...card, evidenceStatus: "Agent deployment improves reliability." }, inferred))

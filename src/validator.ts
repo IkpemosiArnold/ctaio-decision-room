@@ -48,6 +48,28 @@ export function bareAchievedVerb(text: string): string | null {
   return null;
 }
 
+/**
+ * Actions that are hard to undo. Checked against the decision text in code, because
+ * `reversible` is a boolean the Operator sets about its own output, and a model's
+ * self-report is not a control (same lesson as the injection check, see AUTOPSY.md).
+ */
+const IRREVERSIBLE =
+  /\b(roll(ing)? out to all|company[- ]wide|organi[sz]ation[- ]wide|fleet[- ]wide|across all|migrate all|migration of all|decommission\w*|delete\w*|terminat\w*|replace all|standardi[sz]e on|mandate\w*|multi[- ]year|fully autonomous|without human|remove the human|sign a contract)\b/i;
+
+const STOPWORDS = new Set(
+  "the a an and or but for with from that this those these into over under about their there here when what which while its it is are was were be been being has have had will would should could may might can not no than then them they he she his her our your you we as at by on in of to if so such more most other others any all each per via using used use".split(" "),
+);
+
+/** Content words, long enough to carry topic. Used to bind a card to its claim. */
+const contentWords = (s: string) =>
+  new Set(
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((w) => w.length > 3 && !STOPWORDS.has(w)),
+  );
+
 const normalize = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
 /** No zero filter. "0 incidents" is as inventable as any other figure. */
 const numbers = (s: string) => s.match(/\d+(?:\.\d+)?/g) ?? [];
@@ -160,8 +182,27 @@ export function validateCard(
   const invented = [...numbers(card.signal), ...numbers(card.evidenceStatus)].filter((n) => !allowed.has(n));
   if (invented.length) fail("unsupported_number", `figures not present in the evidence: ${invented.join(", ")}`);
 
-  // 10. Irreversible action always needs a human, it can never stand as a published recommendation.
+  /**
+   * 10. Topic binding. Rules 1 and 2 prove the card cites a real claim, not that it is ABOUT it.
+   * A card carrying a valid claimId and a signal on an unrelated subject would otherwise pass
+   * every other rule. Lexical overlap is a blunt instrument, deliberately so: it is deterministic,
+   * it cannot be argued with, and two shared content words is a floor no on-topic card fails.
+   */
+  const claimWords = contentWords(`${claim.claim} ${claim.evidence}`);
+  const shared = [...contentWords(card.signal)].filter((w) => claimWords.has(w));
+  if (shared.length < 2) {
+    fail("card_not_about_its_claim", `signal shares ${shared.length} content words with claim ${claim.claimId}`);
+  }
+
+  // 11. Irreversible action always needs a human, it can never stand as a published recommendation.
   if (!card.reversible) fail("irreversible_without_human_approval", "card recommends a hard-to-reverse action");
+  const irreversibleLanguage = IRREVERSIBLE.exec(card.decision);
+  if (irreversibleLanguage && card.reversible) {
+    fail(
+      "reversibility_misreported",
+      `decision recommends "${irreversibleLanguage[0]}" but the card reports itself as reversible`,
+    );
+  }
 
   return { card, status: issues.length ? "rejected" : "publishable", issues };
 }
