@@ -1,0 +1,136 @@
+import { describe, it, expect } from "vitest";
+import { validateCard } from "../src/validator.js";
+import { SOURCES } from "../src/sources.js";
+import type { Claim, DecisionCard, Verdict } from "../src/types.js";
+
+const source = SOURCES[0];
+
+const claim: Claim = {
+  claimId: "c1",
+  sourceId: source.sourceId,
+  sourceUrl: source.url,
+  claim: "Change failure rate fell after agent-assisted deployment was introduced",
+  evidence: "change failure rate fell from 14.2 percent to 9.6 percent",
+  claimType: "fact",
+  relevantRoles: ["CTO", "CIO"],
+};
+
+const verdict: Verdict = {
+  claimId: "c1",
+  status: "supported",
+  correctedLabel: "fact",
+  reasons: ["The quoted figures appear in the source with a denominator and a timeframe"],
+  failureModes: [],
+  confidence: 0.8,
+};
+
+const card: DecisionCard = {
+  claimId: "c1",
+  signal: "Change failure rate fell from 14.2 percent to 9.6 percent under agent-assisted deployment.",
+  evidenceStatus: "One implementation report, no controlled comparison.",
+  relevantRoles: ["CTO", "CIO"],
+  decision: "Approve a limited agent-assisted deployment pilot, not an autonomous production rollout.",
+  owner: "VP Engineering",
+  successMetrics: ["change failure rate", "rollback rate", "deployment lead time", "intervention rate"],
+  authorityBoundary: "The agent may prepare and validate a deployment but cannot approve production release.",
+  escalateWhen: "Security controls are bypassed, evidence conflicts, or rollback verification fails.",
+  privacyOrSecurityConcern: "Deployment agent needs production credentials, scope them to prepare-only.",
+  reversible: true,
+  confidence: 0.7,
+};
+
+const check = (c: DecisionCard, v: Verdict = verdict, cl: Claim = claim) =>
+  validateCard(c, [cl], [v], SOURCES);
+
+const codes = (c: DecisionCard, v?: Verdict, cl?: Claim) =>
+  check(c, v, cl).issues.map((i) => i.code);
+
+describe("deterministic validator", () => {
+  it("passes a well-formed card built on supported evidence", () => {
+    expect(check(card).status).toBe("publishable");
+  });
+
+  it("rejects a card whose claimId matches nothing (an invented card)", () => {
+    expect(codes({ ...card, claimId: "ghost" })).toContain("no_matching_claim");
+  });
+
+  it("rejects evidence that is not verbatim in the source", () => {
+    const drifted = { ...claim, evidence: "change failure rate fell by ninety percent" };
+    expect(codes(card, verdict, drifted)).toContain("evidence_not_in_source");
+  });
+
+  it("rejects any card built on a claim the skeptic did not support", () => {
+    expect(codes(card, { ...verdict, status: "needs_human_review" })).toContain("claim_not_supported");
+  });
+
+  it("blocks publication when the source carried injected instructions", () => {
+    const flagged: Verdict = { ...verdict, failureModes: ["prompt_injection_in_source"] };
+    expect(codes(card, flagged)).toContain("unhandled_high_risk_flag");
+  });
+
+  it("blocks vendor marketing dressed as independent evidence", () => {
+    const flagged: Verdict = { ...verdict, failureModes: ["vendor_marketing_as_independent_evidence"] };
+    expect(codes(card, flagged)).toContain("unhandled_high_risk_flag");
+  });
+
+  it("rejects a card with no named owner", () => {
+    expect(codes({ ...card, owner: "TBD" })).toContain("no_owner");
+  });
+
+  it("rejects a card with no measurable success metric", () => {
+    expect(codes({ ...card, successMetrics: ["team feels more confident"] })).toContain("no_measurable_metric");
+  });
+
+  it("rejects numbers that do not appear in the evidence", () => {
+    expect(codes({ ...card, decision: "Roll out to all 62 services this quarter." })).toContain("unsupported_number");
+  });
+
+  it("rejects an irreversible action, it can never stand as a published recommendation", () => {
+    expect(codes({ ...card, reversible: false })).toContain("irreversible_without_human_approval");
+  });
+
+  it("rejects inference stated without qualification", () => {
+    const inferred: Verdict = { ...verdict, correctedLabel: "inference" };
+    expect(codes({ ...card, evidenceStatus: "Agent deployment improves reliability." }, inferred))
+      .toContain("inference_as_fact");
+  });
+});
+
+/**
+ * The citation-drift regression. This is the failure the pipeline is built to survive:
+ * the Scout quotes the source correctly, then the Operator rewrites a hedged projection
+ * as an achieved result. The wording upgrade is the bug, and no model gets to approve it.
+ */
+describe("citation drift: hedged evidence cannot be upgraded to an achieved result", () => {
+  const injected = SOURCES[2];
+  const hedged: Claim = {
+    claimId: "d1",
+    sourceId: injected.sourceId,
+    sourceUrl: injected.url,
+    claim: "Routing cheap requests to a smaller model is projected to cut inference spend",
+    evidence: "projected to cut inference spend by\nroughly 60 percent next quarter",
+    claimType: "inference",
+    relevantRoles: ["CTO", "CDAO"],
+  };
+  const hedgedVerdict: Verdict = { ...verdict, claimId: "d1", correctedLabel: "inference", confidence: 0.5 };
+
+  it("rejects 'reduced' where the evidence says 'projected to cut'", () => {
+    const upgraded: DecisionCard = {
+      ...card,
+      claimId: "d1",
+      signal: "Model routing reduced inference spend by 60 percent.",
+      evidenceStatus: "Projection from one week of traffic sampling, not yet observed in production.",
+    };
+    expect(codes(upgraded, hedgedVerdict, hedged)).toContain("epistemic_upgrade");
+  });
+
+  it("accepts the same card when it keeps the source's hedge", () => {
+    const faithful: DecisionCard = {
+      ...card,
+      claimId: "d1",
+      signal: "Model routing is projected to cut inference spend by roughly 60 percent next quarter.",
+      evidenceStatus: "Projection from one week of traffic sampling, not yet observed in production.",
+    };
+    expect(codes(faithful, hedgedVerdict, hedged)).not.toContain("epistemic_upgrade");
+  });
+});
