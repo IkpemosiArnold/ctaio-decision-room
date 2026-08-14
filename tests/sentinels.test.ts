@@ -23,13 +23,31 @@ describe("sentinel 1: strongly supported claim", () => {
 
 describe("sentinel 2: vendor marketing presented as independent evidence", () => {
   const src = SOURCES.find((s) => s.sentinel === "marketing")!;
-  it("publishes nothing from the vendor's own benchmark", () => {
-    expect(publishableFor(src.sourceId)).toHaveLength(0);
+
+  /**
+   * Deliberately narrower than "publish nothing from this source". The article also contains
+   * sound reporting about the vendor (no published baseline, "SOC 2 aligned" is not certified),
+   * and a CIO should get that. What must never publish is the vendor's own performance claim.
+   */
+  it("publishes no card that rests on a marketing-labelled claim", () => {
+    const marketing = new Set(
+      run.verdicts.filter((v) => v.correctedLabel === "marketing").map((v) => v.claimId),
+    );
+    expect(marketing.size).toBeGreaterThan(0);
+    expect(publishableFor(src.sourceId).filter((c) => marketing.has(c.card.claimId))).toHaveLength(0);
   });
-  it("the skeptic supports none of its claims", () => {
-    const v = run.verdicts.filter((x) => claimsFor(src.sourceId).includes(x.claimId));
-    expect(v.length).toBeGreaterThan(0);
-    expect(v.filter((x) => x.status === "supported")).toHaveLength(0);
+
+  it("publishes no card carrying the vendor's self-reported performance figure", () => {
+    expect(publishableFor(src.sourceId).some((c) => /10x/i.test(c.card.signal + c.card.decision))).toBe(false);
+  });
+
+  it("publishes no figure that lost its denominator or timeframe", () => {
+    const unbounded = new Set(
+      run.verdicts
+        .filter((v) => v.failureModes.includes("number_missing_denominator_or_timeframe"))
+        .map((v) => v.claimId),
+    );
+    expect(publishableFor(src.sourceId).filter((c) => unbounded.has(c.card.claimId))).toHaveLength(0);
   });
 });
 

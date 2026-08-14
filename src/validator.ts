@@ -49,6 +49,19 @@ export function validateCard(
   if (verdict.failureModes.includes("vendor_marketing_as_independent_evidence")) {
     fail("unhandled_high_risk_flag", "vendor marketing presented as independent evidence");
   }
+  /**
+   * Caught in run_014. The Skeptic marked a vendor's "up to 10x faster" claim `supported`
+   * because the source really does say it, while labelling it `marketing`. Both readings are
+   * defensible, which is the point: "the evidence carries this wording" is not the same test as
+   * "this is a basis for a decision". The label binds here in code, so the distinction cannot be
+   * lost to a model's choice of field.
+   */
+  if (verdict.correctedLabel === "marketing") {
+    fail("marketing_as_decision_basis", "a vendor's claim about its own product cannot ground a decision");
+  }
+  if (verdict.failureModes.includes("number_missing_denominator_or_timeframe")) {
+    fail("unhandled_high_risk_flag", "figure has no denominator or timeframe");
+  }
 
   // 4. No inference presented as fact.
   if (verdict.correctedLabel !== "fact" && !HEDGE.test(card.evidenceStatus) && !/not\b/i.test(card.evidenceStatus)) {
