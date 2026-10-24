@@ -14,7 +14,7 @@ without a human.
 ```bash
 npm install
 npm run brief     # replays recorded runs, no API key needed
-npm test          # 13 validator tests + end-to-end sentinel interception tests
+npm test          # 44 tests: 34 validator, 10 end-to-end sentinel interception
 npm run record    # re-record against a live model via the local claude CLI
 ```
 
