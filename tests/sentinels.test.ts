@@ -28,6 +28,8 @@ describe("sentinel 2: vendor marketing presented as independent evidence", () =>
    * Deliberately narrower than "publish nothing from this source". The article also contains
    * sound reporting about the vendor (no published baseline, "SOC 2 aligned" is not certified),
    * and a CIO should get that. What must never publish is the vendor's own performance claim.
+   * Today's validator is stricter than this test needs: it also rejects those two reporting cards
+   * (unhandled_high_risk_flag, inference_as_fact). One card from this source publishes.
    */
   it("publishes no card that rests on a marketing-labelled claim", () => {
     const marketing = new Set(
