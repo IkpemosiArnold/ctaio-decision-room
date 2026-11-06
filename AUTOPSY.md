@@ -15,7 +15,7 @@ src_vendor_benchmark_c2  supported  | label: marketing | modes: ["number_missing
 ```
 
 The Operator then wrote a decision card on it, and the deterministic validator passed the card as
-publishable. Two of the three sentinel assertions failed:
+publishable. Two of the eight sentinel tests failed, both in the sentinel 2 group:
 
 ```
 FAIL  sentinel 2 > publishes nothing from the vendor's own benchmark
@@ -39,9 +39,9 @@ is exactly why the gate cannot depend on which field a model chooses to use.
 
 ## How it was detected
 
-The sentinel test, not the output. The four published cards read plausibly. One of them was even
-correct reporting ("SOC 2 aligned" is not SOC 2 certified). Reviewing the brief by eye, I would have
-approved it. Only the fixture that recorded what *should* happen caught it.
+The sentinel test, not the output. The four published cards read plausibly. Only one of them carried
+the vendor's 10x. At least three were correct reporting (no published baseline, no named customer to
+contact, "SOC 2 aligned" is not SOC 2 certified). Only the fixture that recorded what *should* happen caught it.
 
 ## The repair
 
